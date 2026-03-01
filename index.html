@@ -1,0 +1,302 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anaesthesia Master – Clinical Pro v2</title>
+
+<style>
+:root{
+--bg:#edf2f7;
+--card:#ffffff;
+--accent:#2b6cb0;
+--green:#2f855a;
+--text:#1a202c;
+--muted:#718096;
+}
+body.dark{
+--bg:#1a202c;
+--card:#2d3748;
+--accent:#63b3ed;
+--green:#68d391;
+--text:#edf2f7;
+--muted:#a0aec0;
+}
+body{
+margin:0;
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
+background:var(--bg);
+color:var(--text);
+}
+header{
+background:var(--accent);
+color:white;
+padding:16px;
+text-align:center;
+font-weight:600;
+font-size:18px;
+}
+.container{
+max-width:1000px;
+margin:auto;
+padding:20px;
+}
+.card{
+background:var(--card);
+padding:18px;
+border-radius:14px;
+box-shadow:0 8px 24px rgba(0,0,0,0.06);
+margin-bottom:18px;
+}
+h3{
+margin:0 0 10px 0;
+color:var(--accent);
+}
+.small{
+font-size:13px;
+color:var(--muted);
+margin-bottom:8px;
+}
+.row{display:flex;gap:12px;}
+.row>div{flex:1;}
+input,select,textarea{
+width:100%;
+padding:10px;
+border-radius:10px;
+border:1px solid #d1d5db;
+margin-top:6px;
+margin-bottom:10px;
+background:var(--card);
+color:var(--text);
+}
+.output{
+background:rgba(72,187,120,0.12);
+padding:10px;
+border-radius:10px;
+font-weight:600;
+margin-bottom:8px;
+}
+button{
+padding:8px 12px;
+border:none;
+border-radius:10px;
+background:var(--accent);
+color:white;
+cursor:pointer;
+margin-right:6px;
+}
+button.secondary{background:var(--green);}
+table{
+width:100%;
+border-collapse:collapse;
+}
+td,th{
+padding:6px 4px;
+border-bottom:1px solid #e2e8f0;
+font-size:14px;
+}
+@media print{
+body *{visibility:hidden;}
+#printArea, #printArea *{visibility:visible;}
+#printArea{position:absolute;left:0;top:0;width:100%;}
+}
+</style>
+</head>
+
+<body>
+
+<header>Anaesthesia Master – Clinical Pro</header>
+
+<div class="container">
+
+<div class="card">
+<h3>Patient Details</h3>
+<div class="small">CR Number is stored internally. Name is primary display identifier.</div>
+
+CR Number
+<input id="cr">
+
+Name
+<input id="name">
+
+<div class="row">
+<div>Age <input id="age" type="number"></div>
+<div>Sex
+<select id="sex">
+<option value="M">Male</option>
+<option value="F">Female</option>
+</select></div>
+</div>
+
+<div class="row">
+<div>Weight (kg)<input id="weight" type="number"></div>
+<div>Height (cm)<input id="height" type="number"></div>
+</div>
+
+Pre-op Hb
+<input id="hb" type="number" step="0.1">
+
+NPO Hours
+<input id="npo" type="number">
+
+<button onclick="savePatient()">Save</button>
+<button onclick="exportPDF()">Export PDF</button>
+
+<select id="patientSelect" onchange="loadPatient()"></select>
+
+</div>
+
+<div class="card">
+<h3>Body Calculations</h3>
+<div class="small">IBW: Devine formula | BSA: Mosteller | EBV: weight × factor</div>
+
+IBW
+<div id="ibw" class="output"></div>
+
+BSA
+<div id="bsa" class="output"></div>
+
+EBV
+<div id="ebv" class="output"></div>
+
+Lowest Hb (80% default)
+<div id="lowHb" class="output"></div>
+
+ABL = EBV × (Hi − Hf) / Hi
+<div id="abl" class="output"></div>
+
+PRBC Units (1 unit = +1 g/dL)
+<div id="prbc" class="output"></div>
+</div>
+
+<div class="card">
+<h3>Fluids</h3>
+<div class="small">Maintenance: 4-2-1 rule | Deficit = maintenance × NPO</div>
+
+Maintenance
+<div id="maint" class="output"></div>
+
+NPO Deficit
+<div id="deficit" class="output"></div>
+
+1st Hour
+<div id="h1" class="output"></div>
+
+2nd Hour
+<div id="h2" class="output"></div>
+
+3rd Hour
+<div id="h3" class="output"></div>
+</div>
+
+<div id="printArea" class="hidden"></div>
+
+</div>
+
+<script>
+
+function getData(k,d){return JSON.parse(localStorage.getItem(k)||JSON.stringify(d));}
+function setData(k,v){localStorage.setItem(k,JSON.stringify(v));}
+
+function recalc(){
+let wt=parseFloat(weight.value)||0;
+let ht=parseFloat(height.value)||0;
+let hbVal=parseFloat(hb.value)||0;
+let npoVal=parseFloat(npo.value)||0;
+let ageVal=parseFloat(age.value)||0;
+
+let ebvFactor=ageVal<12?75:(sex.value=="M"?70:65);
+let ebvVal=wt*ebvFactor;
+let lowHbVal=hbVal*0.8;
+let ablVal=hbVal?ebvVal*(hbVal-lowHbVal)/hbVal:0;
+let ibwVal=sex.value=="M"?50+0.9*(ht-152):45.5+0.9*(ht-152);
+let bsaVal=ht&&wt?Math.sqrt((ht*wt)/3600):0;
+
+ibw.innerText=ibwVal.toFixed(1)+" kg";
+bsa.innerText=bsaVal.toFixed(2)+" m²";
+ebv.innerText=ebvVal.toFixed(0)+" ml";
+lowHb.innerText=lowHbVal.toFixed(1)+" g/dL";
+abl.innerText=ablVal.toFixed(0)+" ml";
+prbc.innerText=(hbVal-lowHbVal).toFixed(1)+" units";
+
+let maintVal=wt<=10?4*wt:wt<=20?40+2*(wt-10):60+(wt-20);
+let deficitVal=maintVal*npoVal;
+
+maint.innerText=maintVal.toFixed(0)+" ml/hr";
+deficit.innerText=deficitVal.toFixed(0)+" ml";
+h1.innerText=(maintVal+deficitVal/2).toFixed(0);
+h2.innerText=(maintVal+deficitVal/4).toFixed(0);
+h3.innerText=(maintVal+deficitVal/4).toFixed(0);
+}
+
+function savePatient(){
+let patients=getData("patients",{});
+patients[name.value]={
+cr:cr.value,
+age:age.value,
+sex:sex.value,
+weight:weight.value,
+height:height.value,
+hb:hb.value,
+npo:npo.value
+};
+setData("patients",patients);
+loadPatientList();
+}
+
+function loadPatientList(){
+let patients=getData("patients",{});
+patientSelect.innerHTML="";
+for(let k in patients){
+patientSelect.innerHTML+=`<option value="${k}">${k}</option>`;
+}
+}
+
+function loadPatient(){
+let patients=getData("patients",{});
+let p=patients[patientSelect.value];
+if(!p)return;
+cr.value=p.cr;
+age.value=p.age;
+sex.value=p.sex;
+weight.value=p.weight;
+height.value=p.height;
+hb.value=p.hb;
+npo.value=p.npo;
+recalc();
+}
+
+function exportPDF(){
+let html=`
+<h2>Anaesthesia Summary</h2>
+<table>
+<tr><th>Field</th><th>Value</th></tr>
+<tr><td>Name</td><td>${name.value}</td></tr>
+<tr><td>CR</td><td>${cr.value}</td></tr>
+<tr><td>Age</td><td>${age.value}</td></tr>
+<tr><td>Sex</td><td>${sex.value}</td></tr>
+<tr><td>Weight</td><td>${weight.value}</td></tr>
+<tr><td>Height</td><td>${height.value}</td></tr>
+<tr><td>Hb</td><td>${hb.value}</td></tr>
+<tr><td>IBW</td><td>${ibw.innerText}</td></tr>
+<tr><td>BSA</td><td>${bsa.innerText}</td></tr>
+<tr><td>EBV</td><td>${ebv.innerText}</td></tr>
+<tr><td>Lowest Hb</td><td>${lowHb.innerText}</td></tr>
+<tr><td>ABL</td><td>${abl.innerText}</td></tr>
+<tr><td>PRBC</td><td>${prbc.innerText}</td></tr>
+<tr><td>Maintenance</td><td>${maint.innerText}</td></tr>
+<tr><td>NPO Deficit</td><td>${deficit.innerText}</td></tr>
+</table>`;
+printArea.innerHTML=html;
+window.print();
+}
+
+document.querySelectorAll("input,select").forEach(e=>e.addEventListener("input",recalc));
+
+loadPatientList();
+recalc();
+
+</script>
+
+</body>
+</html>
