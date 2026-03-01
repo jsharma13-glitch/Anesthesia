@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Anaesthesia Master Console</title>
+<style>
+  :root{
+    --bg:#f6fbff;
+    --card:#ffffff;
+    --muted:#6b7280;
+    --accent:#2b6cb0;
+    --accent-2:#2f855a;
+    --warning:#dd6b20;
+    --danger:#e53e3e;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#eef7ff 0%, #fbfeff 100%);color:#0f172a;}
+  .wrap{max-width:980px;margin:18px auto;padding:12px;}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  header h1{font-size:20px;margin:0}
+  .grid{display:grid;grid-template-columns:1fr;gap:12px}
+  @media(min-width:800px){.grid{grid-template-columns: 1fr 1fr}}
+  .card{background:var(--card);border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(11,35,64,0.06);border:1px solid rgba(15,23,42,0.04)}
+  .section-title{font-weight:700;color:var(--accent);margin-bottom:8px;font-size:14px}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  input[type="number"], input[type="text"], select{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(15,23,42,0.08);font-size:16px;background:transparent}
+  .row{display:flex;gap:8px}
+  .col{flex:1}
+  .output{background: linear-gradient(180deg,#f8fff9,#f0fff4);padding:10px;border-radius:8px;border:1px solid rgba(47,133,90,0.08);font-weight:700;font-size:16px;color:var(--accent-2)}
+  .small{font-size:12px;color:var(--muted)}
+  .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .btn{display:inline-block;padding:10px 12px;border-radius:10px;background:var(--accent);color:white;border:none;font-weight:700;cursor:pointer}
+  .muted{color:var(--muted);font-size:13px}
+  .warn{color:var(--warning);font-weight:700}
+  .danger{color:var(--danger);font-weight:700}
+  .tile{padding:10px;border-radius:8px;background:linear-gradient(180deg,#fff,#fcfcff);border:1px solid rgba(11,35,64,0.04)}
+  footer{margin-top:14px;text-align:center;color:var(--muted);font-size:13px}
+  .k{font-weight:800;color:#0b5ea8;font-size:18px}
+  table{width:100%;border-collapse:collapse}
+  td,th{padding:8px;border-bottom:1px dashed rgba(15,23,42,0.04);font-size:14px}
+  .small-muted{font-size:12px;color:var(--muted)}
+  .center{text-align:center}
+  .chip{padding:6px 10px;border-radius:999px;background:#f1f5f9;border:1px solid rgba(15,23,42,0.04);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div style="width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#5bb0ff)"></div>
+    <div>
+      <h1>Anaesthesia Master Console</h1>
+      <div class="small-muted">Responsive web app — same formulas as your Excel master (V10)</div>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="card" id="inputsCard">
+      <div class="section-title">Patient Inputs</div>
+      <div class="row">
+        <div class="col">
+          <label>Age (yrs)</label>
+          <input id="age" type="number" min="0" step="0.1" value="30">
+        </div>
+        <div class="col">
+          <label>Sex</label>
+          <select id="sex"><option value="M">Male</option><option value="F">Female</option></select>
+        </div>
+      </div>
+
+      <div style="height:8px"></div>
+      <div class="row">
+        <div class="col">
+          <label>Weight (kg)</label>
+          <input id="weight" type="number" min="0" step="0.1" value="70">
+        </div>
+        <div class="col">
+          <label>Height (cm)</label>
+          <input id="height" type="number" min="0" step="0.1" value="170">
+        </div>
+      </div>
+
+      <div style="height:8px"></div>
+      <div class="row">
+        <div class="col">
+          <label>Pre-op Hb (g/dL)</label>
+          <input id="preopHb" type="number" min="0" step="0.1" value="14">
+        </div>
+        <div class="col">
+          <label>NPO Hours</label>
+          <input id="npo" type="number" min="0" step="0.25" value="8">
+        </div>
+      </div>
+
+      <div style="height:8px"></div>
+      <div class="small-muted">EBV factor uses: &lt;12 → 75 ml/kg; adult male 70 ml/kg; adult female 65 ml/kg. Lowest Hb = 80% of Pre-op Hb</div>
+    </div>
+
+    <div class="card" id="bodyCard">
+      <div class="section-title">Body Calculations & Blood</div>
+      <div class="result-grid">
+        <div class="tile">
+          <div class="small">Ideal Body Weight (Devine)</div>
+          <div id="ibw" class="k">--</div>
+        </div>
+        <div class="tile">
+          <div class="small">Body Surface Area (Mosteller)</div>
+          <div id="bsa" class="k">--</div>
+        </div>
+      </div>
+
+      <div style="height:8px"></div>
+      <div class="row">
+        <div class="col">
+          <label>EBV Factor (ml/kg)</label>
+          <input id="ebvFactor" type="number" step="1" value="70">
+        </div>
+        <div class="col">
+          <label>Estimated Blood Volume (ml)</label>
+          <input id="ebv" readonly class="output" value="--">
+        </div>
+      </div>
+
+      <div style="height:10px"></div>
+      <div class="row">
+        <div class="col">
+          <label>Lowest Hb (80% of Pre-op)</label>
+          <input id="lowHb" readonly class="output" value="--">
+        </div>
+        <div class="col">
+          <label>Allowable Blood Loss (ml)</label>
+          <input id="abl" readonly class="output" value="--">
+        </div>
+      </div>
+
+      <div style="height:8px"></div>
+      <div class="row">
+        <div class="col">
+          <label>PRBC units estimate (≈1 unit raises Hb by 1 g/dL in 70 kg)</label>
+          <input id="prbc" readonly class="output" value="--">
+        </div>
+        <div class="col">
+          <label class="small">Manual EBV override</label>
+          <input id="ebvOverride" type="number" min="0" step="1" placeholder="leave blank">
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="fluidsCard">
+      <div class="section-title">Fluids — Maintenance & NPO Replacement</div>
+
+      <div class="row">
+        <div class="col">
+          <label>Maintenance (4-2-1) ml/hr</label>
+          <input id="maintenance" readonly class="output" value="--">
+        </div>
+        <div class="col">
+          <label>NPO deficit (ml)</label>
+          <input id="deficit" readonly class="output" value="--">
+        </div>
+      </div>
+
+      <div style="height:8px"></div>
+      <div class="row">
+        <div class="col">
+          <label>1st hour replacement (ml)</label>
+          <input id="firstHour" readonly class="output" value="--">
+        </div>
+        <div class="col">
+          <label>2nd hour replacement (ml)</label>
+          <input id="secondHour" readonly class="output" value="--">
+        </div>
+      </div>
+
+      <div style="height:8px"></div>
+      <div class="row">
+        <div class="col">
+          <label>3rd hour replacement (ml)</label>
+          <input id="thirdHour" readonly class="output" value="--">
+        </div>
+        <div class="col">
+          <label>3rd space loss (ml/hr)</label>
+          <select id="thirdSpace">
+            <option value="0">None</option>
+            <option value="2">Minor (2 ml/kg/hr)</option>
+            <option value="4">Moderate (4 ml/kg/hr)</option>
+            <option value="6">Major (6 ml/kg/hr)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="drugCard">
+      <div class="section-title">Drug Doses (weight-based)</div>
+      <table>
+        <tbody>
+          <tr><td>Propofol 2 mg/kg</td><td class="center"><span id="prop" class="k">-- mg</span></td></tr>
+          <tr><td>Fentanyl 2 mcg/kg</td><td class="center"><span id="fent" class="k">-- mcg</span></td></tr>
+          <tr><td>Rocuronium 0.6 mg/kg</td><td class="center"><span id="roc" class="k">-- mg</span></td></tr>
+          <tr><td>Succinylcholine 1.5 mg/kg</td><td class="center"><span id="sux" class="k">-- mg</span></td></tr>
+          <tr><td>Paracetamol 15 mg/kg</td><td class="center"><span id="para" class="k">-- mg</span></td></tr>
+          <tr><td>Tranexamic acid 10 mg/kg</td><td class="center"><span id="txa" class="k">-- mg</span></td></tr>
+        </tbody>
+      </table>
+      <div style="height:8px"></div>
+      <div class="small-muted">Max dose checks can be enabled in settings (optional)</div>
+    </div>
+
+    <div class="card" id="infusionCard">
+      <div class="section-title">Infusion Calculator</div>
+      <div class="row">
+        <div class="col">
+          <label>Target dose (mcg/kg/min)</label>
+          <input id="targetDose" type="number" step="0.01" value="0.05">
+        </div>
+        <div class="col">
+          <label>Prepared concentration (mcg/ml)</label>
+          <input id="concentration" type="number" step="0.1" value="80">
+        </div>
+      </div>
+      <div style="height:8px"></div>
+      <div class="row">
+        <div class="col">
+          <label>Infusion rate (ml/hr)</label>
+          <input id="infusionRate" readonly class="output" value="--">
+        </div>
+        <div class="col">
+          <label>Notes</label>
+          <div class="small-muted">Formula: ml/hr = weight × target × 60 / conc</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="pedsCard">
+      <div class="section-title">Pediatric Quick</div>
+      <div class="row">
+        <div class="col">
+          <label>ETT size (uncuffed)</label>
+          <input id="ett" readonly class="output" value="--">
+        </div>
+        <div class="col">
+          <label>ETT size (cuffed)</label>
+          <input id="ettc" readonly class="output" value="--">
+        </div>
+      </div>
+      <div style="height:8px"></div>
+      <div class="row">
+        <div class="col">
+          <label>Adrenaline arrest (0.01 mg/kg)</label>
+          <input id="adrenaline" readonly class="output" value="--">
+        </div>
+        <div class="col">
+          <label>Atropine (0.02 mg/kg)</label>
+          <input id="atropine" readonly class="output" value="--">
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="height:12px"></div>
+  <div class="card">
+    <div class="section-title">Extras & Settings</div>
+    <div class="row">
+      <div class="col">
+        <label><input id="autoRound" type="checkbox" checked> Auto-round outputs (clinically friendly)</label>
+      </div>
+      <div class="col">
+        <label><input id="showMax" type="checkbox"> Show max dose warnings</label>
+      </div>
+    </div>
+    <div style="height:8px"></div>
+    <div class="row">
+      <div class="col">
+        <button id="exportBtn" class="btn">Export values (CSV)</button>
+      </div>
+      <div class="col" style="text-align:right">
+        <button id="addHome" class="btn" style="background:var(--accent-2)">Add to Home Screen (iOS)</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>Built from your Excel master. Use clinically only after verification. © MD Anaesthesia</footer>
+</div>
+
+<script>
+// Helper utils
+function toNum(v){ v = parseFloat(v); return isFinite(v) ? v : 0; }
+function roundClin(x){
+  if(!document.getElementById('autoRound').checked) return Math.round(x*100)/100;
+  if(Math.abs(x) >= 1000) return Math.round(x);
+  if(Math.abs(x) >= 10) return Math.round(x*1)/1;
+  return Math.round(x*10)/10;
+}
+
+// Main calculation function
+function recalc(){
+  const age = toNum(document.getElementById('age').value);
+  const sex = document.getElementById('sex').value;
+  const weight = toNum(document.getElementById('weight').value);
+  const height = toNum(document.getElementById('height').value);
+  const preopHb = toNum(document.getElementById('preopHb').value);
+  const npo = toNum(document.getElementById('npo').value);
+
+  // IBW (Devine)
+  const ibw = (sex==='M') ? 50 + 0.9*(height - 152) : 45.5 + 0.9*(height - 152);
+  document.getElementById('ibw').textContent = roundClin(ibw) + ' kg';
+
+  // BSA Mosteller
+  const bsa = Math.sqrt((height * weight)/3600);
+  document.getElementById('bsa').textContent = roundClin(bsa) + ' m²';
+
+  // EBV factor logic (auto)
+  const ebvAuto = (age < 1 ? 80 : (age < 12 ? 75 : (sex==='M' ? 70 : 65)));
+  if(document.activeElement && document.activeElement.id !== 'ebvFactor'){
+    document.getElementById('ebvFactor').value = ebvAuto;
+  }
+  let ebvFactor = toNum(document.getElementById('ebvFactor').value);
+  if(!ebvFactor) ebvFactor = ebvAuto;
+
+  let ebvVal = weight * ebvFactor;
+  const ebvOverride = toNum(document.getElementById('ebvOverride').value);
+  if(ebvOverride>0) ebvVal = ebvOverride;
+
+  document.getElementById('ebv').value = roundClin(ebvVal) + ' ml';
+  document.getElementById('ebv').dataset.raw = ebvVal;
+
+  // Lowest Hb = 0.8 * Pre-op Hb
+  const lowHb = 0.8 * preopHb;
+  document.getElementById('lowHb').value = (preopHb>0? (Math.round((lowHb + Number.EPSILON) * 10)/10) + ' g/dL' : '--');
+  document.getElementById('lowHb').dataset.raw = lowHb;
+
+  // ABL = EBV * (Hi - Hf) / Hi
+  const abl = preopHb>0 ? ebvVal * (preopHb - lowHb) / preopHb : 0;
+  document.getElementById('abl').value = roundClin(abl) + ' ml';
+  document.getElementById('abl').dataset.raw = abl;
+
+  // PRBC estimation: (Target Hb - Current Hb) * weight / 70
+  const targetHb = preopHb; // default; user can mentally alter for clinical targets
+  const prbc = ((targetHb - lowHb) * weight) / 70;
+  document.getElementById('prbc').value = (prbc>0 ? Math.max(0, roundClin(prbc)) + ' units' : '0 units');
+
+  // Maintenance 4-2-1
+  const m1 = Math.min(weight,10) * 4;
+  const m2 = Math.min(Math.max(weight-10,0),10) * 2;
+  const m3 = Math.max(weight-20,0) * 1;
+  const maintenance = m1 + m2 + m3;
+  document.getElementById('maintenance').value = roundClin(maintenance) + ' ml/hr';
+
+  // NPO deficit and replacements
+  const deficit = maintenance * npo;
+  document.getElementById('deficit').value = roundClin(deficit) + ' ml';
+  const first = maintenance + deficit/2;
+  const second = maintenance + deficit/4;
+  const third = maintenance + deficit/4;
+  document.getElementById('firstHour').value = roundClin(first) + ' ml';
+  document.getElementById('secondHour').value = roundClin(second) + ' ml';
+  document.getElementById('thirdHour').value = roundClin(third) + ' ml';
+
+  // Drug doses
+  document.getElementById('prop').textContent = (weight>0? roundClin(2 * weight) + ' mg':'--');
+  document.getElementById('fent').textContent = (weight>0? roundClin(2 * weight) + ' mcg':'--');
+  document.getElementById('roc').textContent = (weight>0? roundClin(0.6 * weight) + ' mg':'--');
+  document.getElementById('sux').textContent = (weight>0? roundClin(1.5 * weight) + ' mg':'--');
+  document.getElementById('para').textContent = (weight>0? roundClin(15 * weight) + ' mg':'--');
+  document.getElementById('txa').textContent = (weight>0? roundClin(10 * weight) + ' mg':'--');
+
+  // Infusion rate
+  const target = toNum(document.getElementById('targetDose').value);
+  const conc = toNum(document.getElementById('concentration').value) || 1;
+  const infusion = (weight * target * 60) / conc;
+  document.getElementById('infusionRate').value = roundClin(infusion) + ' ml/hr';
+
+  // Pediatric
+  const ett = ((toNum(document.getElementById('age').value))/4) + 4;
+  const ettc = ((toNum(document.getElementById('age').value))/4) + 3.5;
+  document.getElementById('ett').value = (age>0? (Math.round(ett*10)/10) : '--');
+  document.getElementById('ettc').value = (age>0? (Math.round(ettc*10)/10) : '--');
+  document.getElementById('adrenaline').value = (weight>0? roundClin(0.01 * weight)+' mg':'--');
+  document.getElementById('atropine').value = (weight>0? roundClin(0.02 * weight)+' mg':'--');
+
+  // Warning if ABL > 30% EBV
+  const warn = abl > (0.3 * ebvVal);
+  if(warn) document.getElementById('abl').style.border = '2px solid var(--warning)';
+  else document.getElementById('abl').style.border = '';
+}
+
+// event hookups
+document.querySelectorAll('input,select').forEach(el => el.addEventListener('input', recalc));
+document.getElementById('addHome').addEventListener('click', ()=>{ alert('On iOS: in Safari tap Share → Add to Home Screen. On Android Chrome: Add to Home Screen from menu.'); });
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const rows = [
+    ['Field','Value'],
+    ['Age', document.getElementById('age').value],
+    ['Sex', document.getElementById('sex').value],
+    ['Weight', document.getElementById('weight').value],
+    ['Height', document.getElementById('height').value],
+    ['Preop Hb', document.getElementById('preopHb').value],
+    ['Lowest Hb', document.getElementById('lowHb').dataset.raw || document.getElementById('lowHb').value],
+    ['EBV', document.getElementById('ebv').dataset.raw || document.getElementById('ebv').value],
+    ['ABL', document.getElementById('abl').dataset.raw || document.getElementById('abl').value],
+    ['Maintenance', document.getElementById('maintenance').value],
+    ['NPO hours', document.getElementById('npo').value]
+  ];
+  const csv = rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\\n');
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'anaesthesia_values.csv'; a.click(); URL.revokeObjectURL(url);
+});
+
+recalc();
+</script>
+</body>
+</html>
